@@ -82,7 +82,7 @@ class Online_ELM
 				// save online training para
 				l2_weights_k = K0_inverse * H0_T * initial_data_Y; 
 				l1_bias_1 = l1_bias * MatrixXd::Ones(output_width, nof_input_data); 
-				MatrixXd Hk_T = l1_weights * initial_data_X.col(nof_initial_data_counter) + l1_bias_1;  // ´Ë´¦¿É°´ÔÚÏßÊäÈëÑù±¾Á¿ĞŞ¸Ä´úÂë£¬ÓÃÓÚ×¼±¸ÔÚÏßÑµÁ·µÄ²ÎÊı
+				MatrixXd Hk_T = l1_weights * initial_data_X.col(nof_initial_data_counter) + l1_bias_1;  // æ­¤å¤„å¯æŒ‰åœ¨çº¿è¾“å…¥æ ·æœ¬é‡ä¿®æ”¹ä»£ç ï¼Œç”¨äºå‡†å¤‡åœ¨çº¿è®­ç»ƒçš„å‚æ•°
 				Hk = Hk_T.transpose(); 
 
 				return 0;
@@ -122,20 +122,20 @@ class Online_ELM
 		    }
 	    }
 
-	    vector<double> predict(vector<double> window) // ×îºóÒ»¸öÖµÎª±»Ô¤²âÖµ  BTW£ºuntested
+	    vector<double> predict(vector<double> window) // æœ€åä¸€ä¸ªå€¼ä¸ºè¢«é¢„æµ‹å€¼  BTWï¼šuntested
 	    {
 		    MatrixXd output;
 		    MatrixXd new_data_X = Map<VectorXd>(&window[0], window.size() - 1);
 		    output = (l1_weights * new_data_X + l1_bias);
 		    output = output.transpose() * l2_weights_k;
-		    window[window.size() - 1] = output(1, 1);
+		    window[window.size() - 1] = output(0, 0);
 		    return window;
 	    }
 
-		MatrixXd get_X(void)
-		{
-			return initial_data_X;
-		}
+	    MatrixXd get_X(void)
+	    {
+		return initial_data_X;
+	    }
 
 		MatrixXd get_Y(void)
 		{
