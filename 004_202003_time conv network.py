@@ -105,7 +105,8 @@ for epoch in range(epochs):
         # print(seq.shape)   
         out = ToVariable(out)
         optimizer.zero_grad()
-        modelout = model(seq)
+        model.train() # necessary to set the model state to train mode.
+        modelout = model.forward(seq)
         # print(modelout.shape)  # (10,1,4) # 模型训练输出的大小，有问题，应是(10,1)
         # print(out.shape) # (10,1)，原始数据
         loss = lossfunc(modelout, out)
@@ -113,4 +114,10 @@ for epoch in range(epochs):
         print("Batch:" + str(batch_idx) + "\n误差是：" + str(loss.data.numpy()[0]) )  
         loss.backward()  
         optimizer.step()
+        
+        # eval
+        model.eval() # necessary to set the model state to eval mode.
+        with torch.no_grad():
+            pass
+        
 
