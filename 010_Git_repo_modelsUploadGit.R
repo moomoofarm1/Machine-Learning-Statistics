@@ -16,13 +16,13 @@ repo_owner <- "moomoofarm1"  # Replace with your GitHub username or organization
 repo_name <- "topics"        # Replace with your repository name
 
 # Target Directory in Repository
-repo_target_dir <- '/tests/testthat/_snaps/1_6_topicsPlot/'  # Replace with your desired repository directory
+repo_target_dir <- '.../test'  # Replace with your desired repository directory
 
 # Local Directory Containing Files to Upload
-files_dir <- ".../tests/testthat/_snaps/1_6_topicsPlot/"  # Replace with your local directory path
+files_dir <- "/.../test/"  # Replace with your local directory path
 
 # Branch to Upload Files To
-target_branch <- "boldNegWord"  # Replace with your target branch if different
+target_branch <- "main"  # Replace with your target branch if different
 
 # -------------------------------
 # 2. Helper Functions
