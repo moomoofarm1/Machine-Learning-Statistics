@@ -69,15 +69,15 @@
           {
             label: 'dφ/dt vs φ',
             type: 'line',
-            data: computeHKB(1, 0.5),
+            data: computeHKB(parseFloat(document.getElementById('aSlider').value), parseFloat(document.getElementById('bSlider').value)),
             parsing: false,
-            borderWidth: 2,
+            borderWidth: 1,
             borderColor: 'blue'
           },
           {
             label: 'Fixed Points',
             type: 'scatter',
-            data: findFixedPoints(1, 0.5),
+            data: findFixedPoints(parseFloat(document.getElementById('aSlider').value), parseFloat(document.getElementById('bSlider').value)),
             parsing: false,
             pointRadius: 20,
             pointBackgroundColor: ctx => ctx.raw.backgroundColor,
