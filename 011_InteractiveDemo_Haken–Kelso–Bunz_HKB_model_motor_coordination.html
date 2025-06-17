@@ -18,7 +18,7 @@
     The equation is:
   </p>
   <pre>dφ/dt = -a sin(φ) - 2b sin(2φ)</pre>
-  <p>Here, φ is the relative phase. Parameters <code>a</code> and <code>b</code> define the coupling strength. You can adjust them below.</p>
+  <p>Here, φ is the relative phase. Parameters <code>a</code> and <code>b</code> define the coupling strength. You can adjust them below. Stable and unstable attractors are marked as green and red dots, respectively.</p>
 
   <canvas id="hkbChart" width="600" height="400"></canvas>
 
@@ -40,15 +40,41 @@
       return data;
     }
 
+    function findAttractors(a, b) {
+      const roots = [];
+      for (let phi = -Math.PI; phi <= Math.PI; phi += 0.01) {
+        const f = -a * Math.sin(phi) - 2 * b * Math.sin(2 * phi);
+        const fNext = -a * Math.sin(phi + 0.01) - 2 * b * Math.sin(2 * (phi + 0.01));
+        if (f * fNext < 0) {
+          const phiMid = phi + 0.005;
+          const slope = -a * Math.cos(phiMid) - 4 * b * Math.cos(2 * phiMid);
+          roots.push({ x: phiMid, y: 0, stable: slope < 0 });
+        }
+      }
+      return roots;
+    }
+
     let chart = new Chart(ctx, {
-      type: 'line',
+      type: 'scatter',
       data: {
-        datasets: [{
-          label: 'dφ/dt vs φ',
-          data: computeHKB(1, 0.5),
-          parsing: false,
-          borderWidth: 2
-        }]
+        datasets: [
+          {
+            label: 'dφ/dt vs φ',
+            type: 'line',
+            data: computeHKB(1, 0.5),
+            parsing: false,
+            borderWidth: 2,
+            borderColor: 'blue'
+          },
+          {
+            label: 'Attractors',
+            data: findAttractors(1, 0.5),
+            parsing: false,
+            pointBackgroundColor: ctx => ctx.raw.stable ? 'green' : 'red',
+            pointRadius: 5,
+            showLine: false
+          }
+        ]
       },
       options: {
         responsive: false,
@@ -72,6 +98,7 @@
       document.getElementById('aVal').textContent = a.toFixed(2);
       document.getElementById('bVal').textContent = b.toFixed(2);
       chart.data.datasets[0].data = computeHKB(a, b);
+      chart.data.datasets[1].data = findAttractors(a, b);
       chart.update();
     }
   </script>
