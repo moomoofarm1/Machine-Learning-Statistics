@@ -57,11 +57,12 @@
       const slope = ddphidt(mid, a, b);
       if (slope < 0) {
         points.push({ x: mid, y: 0, backgroundColor: 'green' }); // Attractor
+      } else {
+        points.push({ x: mid, y: 0, backgroundColor: 'red' }); // Unstable point
       }
     }
     prevVal = val;
   }
-  return points;
 }
 
     let chart = new Chart(ctx, {
@@ -77,7 +78,7 @@
             borderColor: 'blue'
           },
           {
-            label: 'Attractors',
+            label: 'Attractors & Unstable Points',
             type: 'scatter',
             data: findAttractors(parseFloat(document.getElementById('aSlider').value), parseFloat(document.getElementById('bSlider').value)),
             parsing: false,
