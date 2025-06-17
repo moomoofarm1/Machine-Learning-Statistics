@@ -54,9 +54,14 @@
       return -a * Math.sin(phi) - 2 * b * Math.sin(2 * phi);
     }
     
-    // Derivative of dφ/dt (for stability analysis)
+    // First derivative of dφ/dt (for stability analysis)
     function ddphidt(phi, a, b) {
       return -a * Math.cos(phi) - 4 * b * Math.cos(2 * phi);
+    }
+    
+    // Second derivative of dφ/dt (for determining min/max)
+    function d2dphidt2(phi, a, b) {
+      return a * Math.sin(phi) + 8 * b * Math.sin(2 * phi);
     }
     
     // Newton-Raphson method to find precise zeros
@@ -85,56 +90,113 @@
       return data;
     }
     
-    // HKB phase dynamics and its derivative
-function dphidt(phi, a, b) {
-  return -a * Math.sin(phi) - 2 * b * Math.sin(2 * phi);
-}
-function ddphidt(phi, a, b) {
-  return -a * Math.cos(phi) - 4 * b * Math.cos(2 * phi);
-}
-
-// Normalize any angle to the interval (-π, π]
-function normalizePhi(phi) {
-  // first wrap into [0, 2π)
-  let p = ((phi + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-  // then shift to (-π, π]
-  p = p - Math.PI;
-  // round to avoid floating‐point duplicates
-  return Math.round(p * 1e6) / 1e6;
-}
-
-// Find all fixed points analytically, classify stability
-function findFixedPoints(a, b) {
-  const roots = new Set();
-
-  // 1) trivial roots: sinφ=0 ⇒ φ=0, π (≡ -π)
-  [0, Math.PI].forEach(phi => {
-    roots.add(normalizePhi(phi));
-  });
-
-  // 2) non‐trivial roots: -a - 4b cosφ = 0 ⇒ cosφ = -a/(4b)
-  if (b !== 0 && Math.abs(a / (4 * b)) <= 1) {
-    const arccos = Math.acos(-a / (4 * b));
-    [ arccos, -arccos ].forEach(phi => {
-      roots.add(normalizePhi(phi));
-    });
-  }
-
-  // build the output array with stability info
-  return Array.from(roots).map(phi => {
-    const deriv = ddphidt(phi, a, b);
-    const stable = deriv < 0;
-    return {
-      x: phi,
-      y: 0,
-      backgroundColor: stable ? 'green' : 'red',
-      borderColor:   stable ? 'darkgreen' : 'darkred',
-      isStable: stable,
-      derivative: deriv
-    };
-  });
-}
-
+    // Find all fixed points with proper stability analysis
+    function findFixedPoints(a, b) {
+      const points = [];
+      const step = 0.02;
+      const uniquePoints = new Set();
+      
+      // Scan for sign changes in dφ/dt
+      let prevVal = dphidt(-Math.PI, a, b);
+      for (let phi = -Math.PI + step; phi <= Math.PI; phi += step) {
+        const val = dphidt(phi, a, b);
+        
+        // Check for sign change (zero crossing)
+        if (prevVal * val < 0) {
+          // Use Newton-Raphson to find precise zero
+          const preciseZero = findZero(phi - step/2, a, b);
+          
+          // Normalize to [-π, π] range
+          let normalizedZero = preciseZero;
+          while (normalizedZero > Math.PI) normalizedZero -= 2 * Math.PI;
+          while (normalizedZero < -Math.PI) normalizedZero += 2 * Math.PI;
+          
+          // Check if we already found this point (avoid duplicates)
+          const key = Math.round(normalizedZero * 1000) / 1000;
+          if (!uniquePoints.has(key) && Math.abs(normalizedZero) <= Math.PI) {
+            uniquePoints.add(key);
+            
+            // At fixed points, dφ/dt = 0, so we examine the first derivative ddφ/dt
+            // to determine if it's a local minimum or maximum
+            const firstDerivative = ddphidt(normalizedZero, a, b);
+            const secondDerivative = d2dphidt2(normalizedZero, a, b);
+            
+            let isStable;
+            let stabilityType;
+            
+            if (Math.abs(firstDerivative) < 1e-10) {
+              // If first derivative is also zero, use second derivative
+              if (secondDerivative > 0) {
+                isStable = false; // Local minimum of dφ/dt means unstable fixed point
+                stabilityType = 'Unstable (min)';
+              } else if (secondDerivative < 0) {
+                isStable = true; // Local maximum of dφ/dt means stable fixed point
+                stabilityType = 'Stable (max)';
+              } else {
+                isStable = false; // Inflection point - generally unstable
+                stabilityType = 'Inflection';
+              }
+            } else {
+              // For typical case: stable if first derivative is negative (downward slope)
+              // This means dφ/dt decreases as φ increases through the fixed point
+              isStable = firstDerivative < 0;
+              stabilityType = isStable ? 'Stable' : 'Unstable';
+            }
+            
+            points.push({
+              x: normalizedZero,
+              y: 0, // Fixed points are where dφ/dt = 0
+              backgroundColor: isStable ? 'green' : 'red',
+              borderColor: isStable ? 'darkgreen' : 'darkred',
+              isStable: isStable,
+              firstDerivative: firstDerivative,
+              secondDerivative: secondDerivative,
+              stabilityType: stabilityType
+            });
+          }
+        }
+        prevVal = val;
+      }
+      
+      // Also check the boundaries (φ = ±π are equivalent)
+      const boundaryVal = dphidt(Math.PI, a, b);
+      if (Math.abs(boundaryVal) < 1e-6) {
+        const firstDerivative = ddphidt(Math.PI, a, b);
+        const secondDerivative = d2dphidt2(Math.PI, a, b);
+        
+        let isStable;
+        let stabilityType;
+        
+        if (Math.abs(firstDerivative) < 1e-10) {
+          if (secondDerivative > 0) {
+            isStable = false;
+            stabilityType = 'Unstable (min)';
+          } else if (secondDerivative < 0) {
+            isStable = true;
+            stabilityType = 'Stable (max)';
+          } else {
+            isStable = false;
+            stabilityType = 'Inflection';
+          }
+        } else {
+          isStable = firstDerivative < 0;
+          stabilityType = isStable ? 'Stable' : 'Unstable';
+        }
+        
+        points.push({
+          x: Math.PI,
+          y: 0,
+          backgroundColor: isStable ? 'green' : 'red',
+          borderColor: isStable ? 'darkgreen' : 'darkred',
+          isStable: isStable,
+          firstDerivative: firstDerivative,
+          secondDerivative: secondDerivative,
+          stabilityType: stabilityType
+        });
+      }
+      
+      return points;
+    }
     
     // Update the fixed points information display
     function updateFixedPointsInfo(fixedPoints) {
@@ -145,7 +207,7 @@ function findFixedPoints(a, b) {
       }
       
       let html = '<table style="width: 100%; border-collapse: collapse;">';
-      html += '<tr style="border-bottom: 1px solid #ccc;"><th>φ (radians)</th><th>φ (degrees)</th><th>Stability</th><th>Derivative</th></tr>';
+      html += '<tr style="border-bottom: 1px solid #ccc;"><th>φ (radians)</th><th>φ (degrees)</th><th>Stability</th><th>d(dφ/dt)/dφ</th><th>d²(dφ/dt)/dφ²</th></tr>';
       
       fixedPoints.forEach(point => {
         const degrees = (point.x * 180 / Math.PI).toFixed(1);
@@ -153,11 +215,20 @@ function findFixedPoints(a, b) {
         html += `<tr style="border-bottom: 1px solid #eee;">
           <td>${point.x.toFixed(4)}</td>
           <td>${degrees}°</td>
-          <td>${stability}</td>
-          <td>${point.derivative.toFixed(4)}</td>
+          <td>${stability} (${point.stabilityType})</td>
+          <td>${point.firstDerivative.toFixed(4)}</td>
+          <td>${point.secondDerivative.toFixed(4)}</td>
         </tr>`;
       });
       html += '</table>';
+      
+      html += '<p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+        <strong>Stability Rule:</strong> At fixed points where dφ/dt = 0:<br>
+        • <span class="stable">Stable</span> when d(dφ/dt)/dφ &lt; 0 (negative slope through zero)<br>
+        • <span class="unstable">Unstable</span> when d(dφ/dt)/dφ &gt; 0 (positive slope through zero)<br>
+        • When d(dφ/dt)/dφ = 0, use second derivative: max = stable, min = unstable
+      </p>';
+      
       listDiv.innerHTML = html;
     }
     
@@ -238,8 +309,7 @@ function findFixedPoints(a, b) {
                 if (context.datasetIndex === 2) {
                   const point = context.raw;
                   const degrees = (point.x * 180 / Math.PI).toFixed(1);
-                  const stability = point.isStable ? 'Stable' : 'Unstable';
-                  return `${stability} fixed point at φ = ${point.x.toFixed(4)} (${degrees}°)`;
+                  return `${point.stabilityType} fixed point at φ = ${point.x.toFixed(4)} (${degrees}°)`;
                 }
                 return context.dataset.label + ': (' + context.parsed.x.toFixed(3) + ', ' + context.parsed.y.toFixed(3) + ')';
               }
