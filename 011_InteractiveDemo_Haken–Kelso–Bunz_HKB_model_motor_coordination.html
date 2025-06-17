@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Haken-Kelso-Bunz (HKB) Model Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+    canvas { background: white; border: 1px solid #ccc; }
+    .controls { margin-top: 20px; }
+    label { display: block; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Haken-Kelso-Bunz (HKB) Model Demo</h1>
+  <p>
+    The HKB model describes the relative phase dynamics of two coupled oscillators, often used to model human bimanual coordination. 
+    The equation is:
+  </p>
+  <pre>dφ/dt = -a sin(φ) - 2b sin(2φ)</pre>
+  <p>Here, φ is the relative phase. Parameters <code>a</code> and <code>b</code> define the coupling strength. You can adjust them below.</p>
+
+  <canvas id="hkbChart" width="600" height="400"></canvas>
+
+  <div class="controls">
+    <label>a: <input type="range" id="aSlider" min="0" max="2" step="0.01" value="1"> <span id="aVal">1.00</span></label>
+    <label>b: <input type="range" id="bSlider" min="0" max="2" step="0.01" value="0.5"> <span id="bVal">0.50</span></label>
+    <button onclick="updateChart()">Update Plot</button>
+  </div>
+
+  <script>
+    const ctx = document.getElementById('hkbChart').getContext('2d');
+
+    function computeHKB(a, b) {
+      const data = [];
+      for (let phi = -Math.PI; phi <= Math.PI; phi += 0.01) {
+        const dphidt = -a * Math.sin(phi) - 2 * b * Math.sin(2 * phi);
+        data.push({ x: phi, y: dphidt });
+      }
+      return data;
+    }
+
+    let chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: 'dφ/dt vs φ',
+          data: computeHKB(1, 0.5),
+          parsing: false,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: false,
+        scales: {
+          x: {
+            type: 'linear',
+            title: { display: true, text: 'φ (radians)' },
+            min: -Math.PI,
+            max: Math.PI
+          },
+          y: {
+            title: { display: true, text: 'dφ/dt' }
+          }
+        }
+      }
+    });
+
+    function updateChart() {
+      const a = parseFloat(document.getElementById('aSlider').value);
+      const b = parseFloat(document.getElementById('bSlider').value);
+      document.getElementById('aVal').textContent = a.toFixed(2);
+      document.getElementById('bVal').textContent = b.toFixed(2);
+      chart.data.datasets[0].data = computeHKB(a, b);
+      chart.update();
+    }
+  </script>
+</body>
+</html>
