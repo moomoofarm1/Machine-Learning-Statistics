@@ -55,8 +55,18 @@
     if (prevVal * val <= 0) {
       const mid = phi - 0.005;
       const slope = ddphidt(mid, a, b);
-      if (slope < 0) {
-        points.push({ x: mid, y: 0, backgroundColor: 'green' }); // Attractor
+      const yVal = dphidt(mid, a, b);
+      points.push({ x: mid, y: yVal, backgroundColor: slope < 0 ? 'green' : 'red' });
+    }
+    prevVal = val;
+  }
+  return points;
+});
+    }
+    prevVal = val;
+  }
+  return points;
+}); // Attractor
       } else {
         points.push({ x: mid, y: 0, backgroundColor: 'red' }); // Unstable point
       }
