@@ -110,7 +110,7 @@
       document.getElementById('bVal').textContent = b.toFixed(2);
 
       chart.data.datasets[0].data = computeHKB(a, b);
-      chart.data.datasets[1].data = findFixedPoints(a, b);
+      chart.data.datasets[1].data = findAttractors(a, b);
       chart.update();
     }
   </script>
