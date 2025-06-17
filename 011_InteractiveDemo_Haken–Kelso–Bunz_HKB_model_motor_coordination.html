@@ -222,12 +222,13 @@
       });
       html += '</table>';
       
-      html += '<p style="margin-top: 10px; font-size: 0.9em; color: #666;">
-        <strong>Stability Rule:</strong> At fixed points where dφ/dt = 0:<br>
-        • <span class="stable">Stable</span> when d(dφ/dt)/dφ &lt; 0 (negative slope through zero)<br>
-        • <span class="unstable">Unstable</span> when d(dφ/dt)/dφ &gt; 0 (positive slope through zero)<br>
-        • When d(dφ/dt)/dφ = 0, use second derivative: max = stable, min = unstable
-      </p>';
+      html += `<p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+  <strong>Stability Rule:</strong> At fixed points where dφ/dt = 0:<br>
+  • <span class="stable">Stable</span> when d(dφ/dt)/dφ &lt; 0 (negative slope through zero)<br>
+  • <span class="unstable">Unstable</span> when d(dφ/dt)/dφ &gt; 0 (positive slope through zero)<br>
+  • When d(dφ/dt)/dφ = 0, use second derivative: max = stable, min = unstable
+</p>`;
+
       
       listDiv.innerHTML = html;
     }
