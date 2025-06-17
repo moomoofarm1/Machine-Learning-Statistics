@@ -48,32 +48,20 @@
     }
 
     function findAttractors(a, b) {
-  const points = [];
-  let prevVal = dphidt(-Math.PI, a, b);
-  for (let phi = -Math.PI + 0.01; phi <= Math.PI; phi += 0.01) {
-    const val = dphidt(phi, a, b);
-    if (prevVal * val <= 0) {
-      const mid = phi - 0.005;
-      const slope = ddphidt(mid, a, b);
-      const yVal = dphidt(mid, a, b);
-      points.push({ x: mid, y: yVal, backgroundColor: slope < 0 ? 'green' : 'red' });
-    }
-    prevVal = val;
-  }
-  return points;
-});
-    }
-    prevVal = val;
-  }
-  return points;
-}); // Attractor
-      } else {
-        points.push({ x: mid, y: 0, backgroundColor: 'red' }); // Unstable point
+      const points = [];
+      let prevVal = dphidt(-Math.PI, a, b);
+      for (let phi = -Math.PI + 0.01; phi <= Math.PI; phi += 0.01) {
+        const val = dphidt(phi, a, b);
+        if (prevVal * val <= 0) {
+          const mid = phi - 0.005;
+          const slope = ddphidt(mid, a, b);
+          const yVal = dphidt(mid, a, b);
+          points.push({ x: mid, y: yVal, backgroundColor: slope < 0 ? 'green' : 'red' });
+        }
+        prevVal = val;
       }
+      return points;
     }
-    prevVal = val;
-  }
-}
 
     let chart = new Chart(ctx, {
       type: 'scatter',
@@ -92,7 +80,7 @@
             type: 'scatter',
             data: findAttractors(parseFloat(document.getElementById('aSlider').value), parseFloat(document.getElementById('bSlider').value)),
             parsing: false,
-            pointRadius: 20,
+            pointRadius: 6,
             pointBackgroundColor: ctx => ctx.raw.backgroundColor,
             showLine: false
           }
