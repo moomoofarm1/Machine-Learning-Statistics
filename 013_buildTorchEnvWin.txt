@@ -19,7 +19,7 @@ conda -V # should print conda XX.X.X
 
 Enter command and run
 """
-conda create -n virtutorch python=3.10 && conda activate virtutorch
+conda create -n virtutorch python=3.10 && conda activate virtualenvname
 conda install -c conda-forge jupyterlab
 conda install pytorch=2.5.1 -c conda-forge # modify the pytorch version to an updated one and should not have conflicts with python version.
 conda install torchvision torchaudio # torchaudio requires torch 2.5.1
