@@ -13,7 +13,7 @@ del .\miniconda.exe
 
 window key + r, enter cmd, then enter, and input
 """
-%WINDIR%\System32\cmd.exe "/K" C:\Users\SoREAL\miniconda3\Scripts\activate.bat C:\Users\SoREAL\miniconda3 # Or find anaconda prompt in the start menu shortcuts.
+%WINDIR%\System32\cmd.exe "/K" C:\Users\USERNAME\miniconda3\Scripts\activate.bat C:\Users\USERNAME\miniconda3 # Or find anaconda prompt in the start menu shortcuts.
 conda -V # should print conda XX.X.X
 """
 
