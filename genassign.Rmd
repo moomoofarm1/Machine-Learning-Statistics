@@ -1,0 +1,178 @@
+---
+title: "PCA & MDS Visualization of Suicidality Embeddings"
+author: "Zhuojun"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output: html_document
+params:
+  dataset_choice: "d2"
+---
+
+## Overview
+
+This R Markdown document reproduces the exploratory visualization pipeline that was originally written as a plain R script.  It
+
+1. Loads sentence‐embedding matrices and model predictions;
+2. Runs a PCA on the embeddings and keeps enough components to explain ≥85 % of the variance;
+3. Calculates a two‑dimensional MDS from the PCA space;
+4. Generates a set of hex‑bin and scatter plots that summarize relationships between the low‑dimensional representation and suicidality ratings (expert and model‐predicted) as well as observed PHQ‑9 totals.
+
+> **Prerequisites**  
+> • The files `suidat/textpack_suicide_emb.rds` and `suidat/textpack_suicide_pred.rds` must exist relative to the working directory.  
+> • The YAML parameter `dataset_choice` selects the subset (`"d1"`, `"d2"`, or `"d3"`).  Edit it at the top of this file or supply `rmarkdown::render("pca_mds_visualization.Rmd", params = list(dataset_choice = "d3"))`.
+
+## Packages
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(hexbin)
+library(magrittr)
+library(dplyr)
+library(tibble)
+library(tidymodels)
+library(ggplot2)
+library(stats)       # dist(), cmdscale()
+library(ggthemes)
+library(patchwork)
+library(tidyr)
+```
+
+## Core function
+
+```{r functions}
+run_pca_mds_visualization <- function(dataset_choice = "d2") {
+  # ---- Load & merge data ----------------------------------------------------
+  embdf <- readRDS('suidat/textpack_suicide_emb.rds')$texts$texts
+  df    <- readRDS('suidat/textpack_suicide_pred.rds')
+  df    <- dplyr::bind_cols(df, embdf)
+
+  # ---- Filter ---------------------------------------------------------------
+  df <- df[df$dataset == dataset_choice, ]
+
+  # Keep metadata & embeddings
+  df <- df[, c(3, 4, 7, 8:1031)]
+  names(df)[2:3] <- c('expert_suicidality', 'LBA_suicidality')
+
+  # ---- PCA (≥85 % variance) --------------------------------------------------
+  pca_recipe <- recipe(~ ., data = df[, 8:1026]) %>%
+    step_pca(all_predictors(), threshold = 0.85) %>%
+    prep()
+  df_pca <- bake(pca_recipe, new_data = NULL)
+
+  # ---- MDS on Euclidean distances in PCA space ------------------------------
+  dissimilarity <- dist(as.matrix(df_pca))
+  mds_result    <- cmdscale(dissimilarity, k = 2)
+  df_mds <- as_tibble(mds_result, .name_repair = "unique") %>%
+    rename(MDS1 = ...1, MDS2 = ...2)
+
+  # ---- Combine & standardise ------------------------------------------------
+  df_combined <- bind_cols(
+    df_pca,
+    df_mds,
+    df$PHQtot,
+    df$expert_suicidality,
+    df$LBA_suicidality
+  ) %>%
+    mutate(across(everything(), ~ as.numeric(scale(.x))))
+  ncoltemp <- ncol(df_pca) + ncol(df_mds) + 1
+  names(df_combined)[ncoltemp:ncol(df_combined)] <- c('PHQtot',
+                                                      'expert_suicidality',
+                                                      'LBA_suicidality')
+
+  # Optional: write a tidy CSV for Python/Seaborn users
+  write.csv(df_combined, paste0('plotseaborn_', dataset_choice, '.csv'),
+            row.names = FALSE)
+
+  # ---- Visualisation --------------------------------------------------------
+  common_limits <- c(-3, 3)
+  plot_list <- list(
+    MDSExpertRat = ggplot(df_combined, aes(MDS1, MDS2)) +
+      stat_summary_hex(aes(z = expert_suicidality), bins = 10, fun = mean) +
+      scale_fill_gradient2(low = "blue", mid = "lightgrey", high = "red",
+                           name = "Avg Expert Suicidality", midpoint = 0,
+                           limits = common_limits) +
+      labs(title = sprintf("Hexbin: Expert Suicidality (%s)", dataset_choice)) +
+      theme_minimal(),
+
+    PCAExpertRat = ggplot(df_combined, aes(PC1, PC2)) +
+      stat_summary_hex(aes(z = expert_suicidality), bins = 10, fun = mean) +
+      scale_fill_gradient2(low = "blue", mid = "lightgrey", high = "red",
+                           name = "Avg Expert Suicidality", midpoint = 0,
+                           limits = common_limits) +
+      labs(title = sprintf("Hexbin: Expert Suicidality (PCA – %s)",
+                           dataset_choice)) +
+      theme_minimal(),
+
+    MDSLBA = ggplot(df_combined, aes(MDS1, MDS2)) +
+      stat_summary_hex(aes(z = LBA_suicidality), bins = 10, fun = mean) +
+      scale_fill_gradient2(low = "blue", mid = "lightgrey", high = "red",
+                           name = "Avg LBA Suicidality", midpoint = 0,
+                           limits = common_limits) +
+      labs(title = sprintf("Hexbin: LBA Suicidality (%s)", dataset_choice)) +
+      theme_minimal(),
+
+    PCALBA = ggplot(df_combined, aes(PC1, PC2)) +
+      stat_summary_hex(aes(z = LBA_suicidality), bins = 10, fun = mean) +
+      scale_fill_gradient2(low = "blue", mid = "lightgrey", high = "red",
+                           name = "Avg LBA Suicidality", midpoint = 0,
+                           limits = common_limits) +
+      labs(title = sprintf("Hexbin: LBA Suicidality (PCA – %s)",
+                           dataset_choice)) +
+      theme_minimal(),
+
+    ScatterExpertLBA = ggplot(df_combined, aes(MDS1, MDS2,
+                                               colour = LBA_suicidality,
+                                               size   = expert_suicidality)) +
+      geom_point(alpha = 0.6) +
+      scale_colour_gradient2(low = "blue", mid = "lightgrey", high = "red",
+                             midpoint = 0, limits = common_limits) +
+      labs(title = sprintf("MDS Scatter (%s)", dataset_choice),
+           colour = "LBA Suicidality",
+           size   = "Expert Suicidality") +
+      theme_minimal()
+  )
+
+  return(plot_list)
+}
+```
+
+## Generate plots for the selected dataset
+
+```{r run-analysis, results='hide'}
+plots <- run_pca_mds_visualization(params$dataset_choice)
+```
+
+### Scatter plot (Expert vs LBA) – *`r params$dataset_choice`*
+
+```{r scatter-expert-lba, fig.width=7, fig.height=5}
+plots$ScatterExpertLBA
+```
+
+### Hex‐bin comparison (Expert vs LBA) – *`r params$dataset_choice`*
+
+```{r hexbin-expert-lba, fig.width=12, fig.height=5}
+plots$MDSExpertRat + plots$MDSLBA
+```
+
+
+## Compare multiple datasets
+
+The chunk below reproduces the composite figure from the original script:
+
+```{r multi-dataset d1, eval=TRUE, fig.width=12, fig.height=5}
+out1 <- run_pca_mds_visualization("d1")
+out2 <- run_pca_mds_visualization("d2")
+out3 <- run_pca_mds_visualization("d3")
+
+out1$MDSLBA + out1$PCALBA
+```
+
+```{r multi-dataset d2, eval=TRUE, fig.width=12, fig.height=5}
+out2$MDSLBA + out2$PCALBA
+
+```
+
+```{r multi-dataset d3, eval=TRUE, fig.width=12, fig.height=5}
+
+ (out3$MDSLBA + out3$PCALBA)
+
+```
